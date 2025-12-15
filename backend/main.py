@@ -22,6 +22,10 @@ app.include_router(prompts.router, prefix=f"{settings.API_V1_STR}/prompts", tags
 from api import rules
 app.include_router(rules.router, prefix=f"{settings.API_V1_STR}/rules", tags=["rules"])
 
+# New Admin Analytics Router
+from api import admin
+app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Spotixx AI Governance Gateway API"}
