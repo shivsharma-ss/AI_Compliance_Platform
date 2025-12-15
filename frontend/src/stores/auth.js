@@ -35,7 +35,11 @@ export const useAuthStore = defineStore('auth', {
                     role: decoded.role
                 }
 
-                router.push('/')
+                if (this.user.role === 'admin') {
+                    router.push('/admin')
+                } else {
+                    router.push('/')
+                }
             } catch (err) {
                 console.error(err)
                 this.error = err.response?.data?.detail || 'Login failed'
