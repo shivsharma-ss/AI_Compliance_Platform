@@ -24,14 +24,40 @@ const router = createRouter({
     ]
 })
 
+import { jwtDecode } from "jwt-decode";
+
 // Navigation Guard
 router.beforeEach((to, from, next) => {
     const token = localStorage.getItem('token')
+
     if (to.meta.requiresAuth && !token) {
         next('/login')
-    } else {
-        next()
+        return
     }
+
+    if (token) {
+        try {
+            const decoded = jwtDecode(token)
+            const isTokenExpired = decoded.exp < Date.now() / 1000
+
+            if (isTokenExpired) {
+                localStorage.removeItem('token')
+                next('/login')
+                return
+            }
+
+            if (to.meta.requiresAdmin && decoded.role !== 'admin') {
+                next('/') // Redirect unauthorized users to home
+                return
+            }
+        } catch (e) {
+            localStorage.removeItem('token')
+            next('/login')
+            return
+        }
+    }
+
+    next()
 })
 
 export default router
