@@ -37,7 +37,7 @@ async def get_users_stats(
         stmt.c.total, 
         stmt.c.accepted_count, 
         stmt.c.declined_count
-    ).outerjoin(stmt, User.id == stmt.c.user_id)
+    ).outerjoin(stmt, User.id == stmt.c.user_id).where(User.role != "admin")
     
     result = await db.execute(query)
     rows = result.all()

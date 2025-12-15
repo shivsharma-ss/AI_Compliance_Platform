@@ -98,67 +98,65 @@ onMounted(() => {
     </header>
 
     <main class="container">
-      <div class="grid">
-        <!-- Rule Management Section -->
-        <div class="section-left">
-          <div class="card mb-2">
-            <h2>Add New Rule</h2>
-            <form @submit.prevent="addRule">
-              <div class="form-group">
-                <label>Rule Name</label>
-                <input v-model="newRuleName" class="input" placeholder="e.g. Block LSD" required />
-              </div>
-              <div class="form-group">
-                <label>Regex Pattern</label>
-                <input v-model="newRulePattern" class="input" placeholder="e.g. (?i)lsd|acid" required />
-              </div>
-              <button type="submit" class="btn btn-primary full-width" :disabled="loading">
-                {{ loading ? 'Saving...' : 'Add Block Rule' }}
-              </button>
-            </form>
-          </div>
+      <div class="grid-top">
+        <!-- Rule Management Section - Top Row -->
+        <div class="card">
+          <h2>Add New Rule</h2>
+          <form @submit.prevent="addRule">
+            <div class="form-group">
+              <label>Rule Name</label>
+              <input v-model="newRuleName" class="input" placeholder="e.g. Block LSD" required />
+            </div>
+            <div class="form-group">
+              <label>Regex Pattern</label>
+              <input v-model="newRulePattern" class="input" placeholder="e.g. (?i)lsd|acid" required />
+            </div>
+            <button type="submit" class="btn btn-primary full-width" :disabled="loading">
+              {{ loading ? 'Saving...' : 'Add Block Rule' }}
+            </button>
+          </form>
+        </div>
 
-          <div class="card">
-            <h2>Active Rules</h2>
-            <div class="rules-list">
-              <div v-for="rule in rules" :key="rule.id" class="rule-item">
-                <div class="rule-info">
-                  <strong>{{ rule.name }}</strong>
-                  <code class="pattern">{{ rule.payload_json?.pattern }}</code>
-                </div>
-                <span class="badge" :class="rule.severity.toLowerCase()">{{ rule.severity }}</span>
+        <div class="card">
+          <h2>Active Rules</h2>
+          <div class="rules-list">
+            <div v-for="rule in rules" :key="rule.id" class="rule-item">
+              <div class="rule-info">
+                <strong>{{ rule.name }}</strong>
+                <code class="pattern">{{ rule.payload_json?.pattern }}</code>
               </div>
+              <span class="badge" :class="rule.severity.toLowerCase()">{{ rule.severity }}</span>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- User Analytics Section -->
-        <div class="section-right">
-          <div class="card">
-            <h2>User Analytics</h2>
-            <table class="stats-table">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Total</th>
-                  <th>Accepted</th>
-                  <th>Declined</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="user in stats" :key="user.id">
-                  <td>{{ user.email }}</td>
-                  <td>{{ user.total_prompts }}</td>
-                  <td class="text-success">{{ user.accepted_count }}</td>
-                  <td class="text-danger">{{ user.declined_count }}</td>
-                  <td>
-                    <button @click="viewUserHistory(user)" class="btn-sm btn-outline-primary">View History</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+      <!-- User Analytics Section - Bottom Row -->
+      <div class="grid-bottom">
+        <div class="card">
+          <h2>User Analytics</h2>
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Total</th>
+                <th>Accepted</th>
+                <th>Declined</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="user in stats" :key="user.id">
+                <td>{{ user.email }}</td>
+                <td>{{ user.total_prompts }}</td>
+                <td class="text-success">{{ user.accepted_count }}</td>
+                <td class="text-danger">{{ user.declined_count }}</td>
+                <td>
+                  <button @click="viewUserHistory(user)" class="btn-sm btn-outline-primary">View History</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </main>
@@ -207,12 +205,8 @@ onMounted(() => {
   background: transparent;
   margin-left: 1rem;
 }
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr; /* 1 column for rules, 1.5 for stats */
-  gap: 2rem;
-}
-.mb-2 { margin-bottom: 2rem; }
+  /* Removed old grid */
+
 .card {
   background: white;
   padding: 1.5rem;
@@ -323,7 +317,16 @@ onMounted(() => {
   color: #666;
   font-style: italic;
 }
+.grid-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+.grid-bottom {
+  display: block;
+}
 @media (max-width: 900px) {
-  .grid { grid-template-columns: 1fr; }
+  .grid-top { grid-template-columns: 1fr; }
 }
 </style>
