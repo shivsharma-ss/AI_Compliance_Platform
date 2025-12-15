@@ -1,0 +1,8 @@
+A simple web app where a user can input a text prompt (e.g., "Write a medical diagnosis"), and the AI (OpenAI API) analyzes if the prompt violates "EU AI Act" safety rules (simulated).
+Extend it with a admin dashboard to overview the requests made by the users (accepted and declined), add further safety rules. It uses a microservice architecture.
+
+Backend: FastAPI (Python) handles the logic and AI request. PostgreSQL database for storing user details and requests.
+
+Frontend: Vue.js displays a clean dashboard with the results (Safe/Unsafe). Login page for various users and admin.
+
+Deployment: Containerize it with Docker and make it ready to push to Google Cloud Run.

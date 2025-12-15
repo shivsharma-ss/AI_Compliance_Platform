@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: spotixx-db
+    environment:
+      POSTGRES_USER: spotixx_user
+      POSTGRES_PASSWORD: spotixx_password
+      POSTGRES_DB: spotixx_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - spotixx-network
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: spotixx-backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://spotixx_user:spotixx_password@db/spotixx_db
+    depends_on:
+      - db
+    networks:
+      - spotixx-network
+
+  frontend:
+    image: node:22-alpine
+    container_name: spotixx-frontend
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host"
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    networks:
+      - spotixx-network
+
+networks:
+  spotixx-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

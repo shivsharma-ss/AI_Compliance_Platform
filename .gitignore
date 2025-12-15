@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+venv/
+env/
+node_modules/
+.DS_Store
+dist/
+coverage/
+.pytest_cache/
+spotixx.db
+*.sqlite3
+backend/alembic.ini

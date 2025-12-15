@@ -1,0 +1,13 @@
+fastapi==0.115.6  # Pinning a recent stable version close to 0.124 if available, checking pip later
+uvicorn==0.34.0
+sqlalchemy==2.0.36
+alembic==1.14.0
+asyncpg==0.30.0
+pydantic-settings==2.6.1
+python-multipart==0.0.19
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+openai==1.57.0
+pytest==8.3.4
+httpx==0.28.1
+greenlet==3.1.1 # Required for sqlalchemy asyncio

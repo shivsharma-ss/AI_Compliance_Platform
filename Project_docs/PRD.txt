@@ -1,0 +1,217 @@
+MVP PRD — “Spotixx AI Governance Gateway” (Prompt Compliance + Admin)
+
+1. Background and context
+
+The EU AI Act entered into force 1 Aug 2024 with phased applicability; prohibited AI practices + AI literacy obligations apply from 2 Feb 2025, and additional governance/GPAI obligations apply later.  ￼ The Commission has also published interpretive guidelines on prohibited practices (non-binding) to support consistent application.  ￼
+
+Spotixx is building a governance/compliance SaaS for the EU AI Act.  ￼ This MVP acts as a concrete, demoable wedge: a policy gate + audit trail for LLM usage.
+
+2. Problem statement
+
+Financial institutions increasingly experiment with LLMs (investigation support, drafting SAR narratives, customer communications, analyst copilots). Teams need:
+	•	A simple intake to check prompts for obviously problematic use
+	•	Consistent internal policy enforcement
+	•	Audit-ready logs for governance and oversight
+	•	A way to iterate rules as interpretations evolve
+
+3. Goals and non-goals
+
+Goals (MVP)
+	•	Provide a web UI + API where users submit prompts and receive Accept/Decline with a short rationale.
+	•	Provide an admin dashboard to:
+	•	View requests (accepted/declined)
+	•	Create/edit “safety rules”
+	•	Export basic audit data (CSV)
+	•	Deployable as containerized services on Google Cloud Run.
+
+Non-goals (MVP)
+	•	Legal-grade EU AI Act determinations (this remains simulated guidance, not legal advice).
+	•	Full model/system compliance workflow (risk management plans, technical documentation, post-market monitoring).
+	•	Multi-party encrypted computation (out of scope for MVP, though conceptually aligned with Spotixx/Qorum’s positioning).
+
+4. Personas
+	1.	Fraud/AML Analyst (User): wants quick “is this allowed?” feedback for a prompt template.
+	2.	Data Scientist (User): tests prompts for an internal tool; wants reproducible decisions.
+	3.	Compliance Officer (Admin): monitors usage, adjusts rules, exports evidence.
+	4.	Platform Admin (Admin): manages users, roles, system settings.
+
+5. User journeys
+
+Journey A — Submit prompt
+	1.	User logs in
+	2.	Enters prompt + selects “intended use” (dropdown: Fraud investigation / AML narrative drafting / Customer comms / Other)
+	3.	System evaluates
+	4.	UI shows: Accept/Decline, categories triggered, and a short explanation
+	5.	Request is stored and appears in “My History”
+
+Journey B — Admin oversight
+	1.	Admin logs in
+	2.	Opens dashboard: charts + list of recent requests
+	3.	Filters by decision, rule, user, time window
+	4.	Opens a request detail page (prompt, outcome, reasons, model used, timestamps)
+	5.	Adds/edits rules; changes take effect for new requests
+
+6. Scope and requirements
+
+6.1 Functional requirements
+FR-1 Authentication & roles
+	•	Login with email + password (MVP)
+	•	Roles: user, admin
+	•	Admin can manage users (create/disable/reset password)
+
+FR-2 Prompt submission
+	•	Fields:
+	•	Prompt text (required)
+	•	Intended use (required dropdown)
+	•	Optional “context” (free text, small)
+	•	Response:
+	•	decision: ACCEPT | DECLINE
+	•	reason_summary: short string
+	•	triggered_rules: list of rule IDs + descriptions
+	•	timestamp, request_id
+
+FR-3 Policy evaluation (simulated EU AI Act + internal rules)
+	•	Evaluation pipeline (MVP, deterministic + LLM-assisted):
+	1.	Rule-based checks (regex/keywords) for “red flag” categories
+	2.	LLM classification (OpenAI API) to map prompt to a small taxonomy:
+	•	Potential prohibited-practice indicators (aligned to Commission guidance topics like manipulation/social scoring/biometric-related uses, etc.)  ￼
+	•	Potential high-risk domain indicators (label only; still “simulated”)
+	3.	Decision logic:
+	•	If any “hard-block” rule triggers → DECLINE
+	•	Else → ACCEPT
+	•	Store the full evaluation trace (inputs/outputs) for audit.
+
+FR-4 User request history
+	•	Paginated list: prompt preview, decision, created_at, intended use
+	•	Request detail view with full rationale and triggered rules
+
+FR-5 Admin request dashboard
+	•	Table of all requests with filters:
+	•	decision, intended use, date range, user
+	•	Basic metrics (MVP):
+	•	total requests, accept rate, top triggered rules
+
+FR-6 Rule management
+	•	Admin CRUD for rules:
+	•	name, description
+	•	rule type: REGEX | KEYWORD_SET | LLM_LABEL
+	•	severity: HARD_BLOCK (MVP) (future: WARN/REVIEW)
+	•	active flag
+	•	version + change log entry (who/when/what)
+	•	“Test rule” sandbox: paste a prompt → see if it triggers (without storing as a user request)
+
+FR-7 Audit export
+	•	Admin can export requests to CSV:
+	•	request_id, user_id, timestamp, decision, intended_use, triggered_rule_ids
+
+6.2 Non-functional requirements
+NFR-1 Security
+	•	Password hashing (argon2/bcrypt), JWT sessions
+	•	Row-level access control:
+	•	users see only their requests
+	•	admins see all
+	•	Secrets stored via GCP Secret Manager (deployment requirement)
+
+NFR-2 Privacy
+	•	Configurable retention:
+	•	MVP default: retain prompts 30/90 days (config)
+	•	Masking option (MVP): store prompt text + a hashed version; allow turning off raw storage (admin setting)
+
+NFR-3 Reliability & performance
+	•	P95 response time target:
+	•	< 2s for rule-only decisions
+	•	< 8s for LLM-assisted decisions (network-bound)
+	•	Graceful degradation:
+	•	If OpenAI call fails → fall back to rule-only and mark llm_status=FAILED
+
+NFR-4 Observability
+	•	Structured logs (JSON)
+	•	Request tracing (correlation IDs)
+	•	Metrics: request counts, accept/decline, OpenAI latency/error rates
+
+7. System design
+
+7.1 Architecture (microservices, MVP-friendly)
+Service A — API Gateway / Backend (FastAPI)
+	•	Exposes REST endpoints to frontend
+	•	Orchestrates auth, evaluation, persistence
+
+Service B — Policy Engine (FastAPI)
+	•	Loads rules from DB
+	•	Executes rule checks
+	•	Calls OpenAI for classification (optional module)
+
+Service C — Admin & Analytics (FastAPI)
+	•	Admin endpoints: rules CRUD, exports, metrics
+
+Database — PostgreSQL
+	•	Single DB instance (MVP) with separate schemas/tables per service (or a shared schema with clear ownership)
+
+Frontend — Vue.js
+	•	User app: prompt submission + history
+	•	Admin app: dashboard + rules editor
+
+Deployment
+	•	Each service containerized (Docker)
+	•	Cloud Run services behind HTTPS
+	•	DB hosted on Cloud SQL for Postgres (recommended for Cloud Run)
+
+This matches Spotixx’s publicly mentioned stack choices (Vue.js, Python, Docker, Cloud Run).  ￼
+
+7.2 Key API endpoints (MVP)
+Auth
+	•	POST /auth/login
+	•	POST /auth/logout
+	•	POST /auth/users (admin)
+	•	PATCH /auth/users/{id} (admin)
+
+Prompt evaluation
+	•	POST /prompts/evaluate
+	•	GET /prompts (user: own; admin: all with filters)
+	•	GET /prompts/{id}
+
+Rules
+	•	GET /rules (admin)
+	•	POST /rules (admin)
+	•	PUT /rules/{id} (admin)
+	•	POST /rules/test (admin)
+
+Exports
+	•	GET /admin/exports/requests.csv
+
+7.3 Data model (tables)
+	•	users(id, email, password_hash, role, is_active, created_at)
+	•	rules(id, name, description, type, payload_json, severity, active, version, updated_at, updated_by)
+	•	prompt_requests(id, user_id, prompt_text, intended_use, context, decision, reason_summary, created_at)
+	•	prompt_evaluations(id, request_id, llm_model, llm_status, llm_latency_ms, classification_json, triggered_rules_json, trace_json)
+
+8. MVP rule taxonomy (suggested starting set)
+
+Start with a compact, explainable set aligned to Commission guidance themes on prohibited practices (while clearly labeling as “simulation/assistive”).  ￼
+Examples of rule labels (not legal determinations):
+	•	Manipulation / deceptive persuasion
+	•	Exploiting vulnerabilities (age/disability/economic hardship)
+	•	Social scoring style requests
+	•	Biometric categorisation / sensitive attribute inference
+	•	Emotion inference in workplace/education contexts
+	•	“Medical diagnosis / treatment decision” (flag as potentially high-impact/high-risk domain label; in MVP it may still be Accept unless you choose to hard-block)
+
+9. Success metrics (MVP)
+	•	Adoption: weekly active users, prompts per user
+	•	Quality: % of decisions with “no rationale” (target 0%), admin rule edit frequency
+	•	Reliability: OpenAI error rate, fallback rate
+	•	Governance: export usage, proportion of prompts with stored evaluation trace
+
+10. Risks and mitigations
+	•	Regulatory accuracy risk: clearly label results as “simulated compliance guidance,” store versioned rule sets, provide traceability.  ￼
+	•	Sensitive data leakage: retention limits, optional prompt masking, strict RBAC, avoid logging raw prompts in application logs.
+	•	Overblocking: keep rules minimal; include admin test sandbox; review top declined prompts to tune precision.
+	•	Vendor dependency: fallback-to-rule-only mode when OpenAI is unavailable.
+
+11. MVP delivery plan (practical sequencing)
+	1.	Auth + user prompt submission + basic rule engine + request history
+	2.	Admin dashboard (list/filter) + rule CRUD + rule testing
+	3.	LLM-assisted classifier + evaluation trace + export
+	4.	Cloud Run deployment + observability + retention controls
+
+⸻
