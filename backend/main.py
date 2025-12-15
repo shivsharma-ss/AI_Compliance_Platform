@@ -18,6 +18,9 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(prompts.router, prefix=f"{settings.API_V1_STR}/prompts", tags=["prompts"])
+# New Rule Router
+from api import rules
+app.include_router(rules.router, prefix=f"{settings.API_V1_STR}/rules", tags=["rules"])
 
 @app.get("/")
 def read_root():
