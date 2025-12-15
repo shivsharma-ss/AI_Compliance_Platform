@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/auth'
 const authStore = useAuthStore()
 const rules = ref([])
 const stats = ref([])
+const modules = ref([])  // New: Modules list
 const selectedUserHistory = ref([])
 const selectedUserEmail = ref('')
 const showHistoryModal = ref(false)
@@ -13,6 +14,7 @@ const showHistoryModal = ref(false)
 const newRuleName = ref('')
 const newRulePattern = ref('')
 const loading = ref(false)
+const moduleLoading = ref({}) // New: Track loading state per module
 
 const fetchRules = async () => {
   try {
@@ -33,6 +35,36 @@ const fetchStats = async () => {
     stats.value = response.data
   } catch (error) {
     console.error('Failed to fetch stats', error)
+  }
+}
+
+// New: Fetch Modules
+const fetchModules = async () => {
+  try {
+    const response = await axios.get('http://localhost:8000/api/v1/modules/', {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
+    modules.value = response.data
+  } catch (error) {
+    console.error('Failed to fetch modules', error)
+  }
+}
+
+// New: Toggle Module Action
+const toggleModule = async (module) => {
+  const action = module.status === 'running' ? 'stop' : 'start'
+  moduleLoading.value[module.name] = true
+  try {
+    await axios.post(`http://localhost:8000/api/v1/modules/${module.name}/${action}`, {}, {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
+    // Refresh list to update status
+    await fetchModules()
+  } catch (error) {
+    console.error(`Failed to ${action} module`, error)
+    alert(`Failed to ${action} module: ${error.response?.data?.detail || error.message}`)
+  } finally {
+    moduleLoading.value[module.name] = false
   }
 }
 
@@ -82,6 +114,7 @@ const logout = () => {
 onMounted(() => {
   fetchRules()
   fetchStats()
+  fetchModules() // New
 })
 </script>
 
@@ -99,9 +132,37 @@ onMounted(() => {
 
     <main class="container">
       <div class="grid-top">
-        <!-- Rule Management Section - Top Row -->
+        
+        <!-- Marketplace Section (New/Modified layout) -->
+        <div class="card full-width-card">
+          <h2>Compliance Marketplace (Microservices)</h2>
+          <p class="subtitle">Dynamically enable isolated compliance engines. Containers are started/stopped on demand.</p>
+          <div class="modules-grid">
+            <div v-for="mod in modules" :key="mod.name" class="module-card">
+              <div class="module-header">
+                <h3>{{ mod.display_name }}</h3>
+                <span class="status-indicator" :class="mod.status">
+                  {{ mod.status === 'running' ? 'Active' : 'Offline' }}
+                </span>
+              </div>
+              <p v-if="mod.name === 'spotixx-presidio'">Detects PII (Phones, Emails, Credit Cards) using Microsoft Presidio + SpaCy.</p>
+              <p v-if="mod.name === 'spotixx-toxicity'">Detects toxic, obscene, or insulting content using Detoxify/BERT.</p>
+              
+              <button 
+                @click="toggleModule(mod)" 
+                class="btn module-btn" 
+                :class="mod.status === 'running' ? 'btn-danger' : 'btn-primary'"
+                :disabled="moduleLoading[mod.name]"
+              >
+                {{ moduleLoading[mod.name] ? 'Processing...' : (mod.status === 'running' ? 'Disable (Stop Container)' : 'Enable (Start Container)') }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rule Management Section -->
         <div class="card">
-          <h2>Add New Rule</h2>
+          <h2>Add Regex Rule</h2>
           <form @submit.prevent="addRule">
             <div class="form-group">
               <label>Rule Name</label>
@@ -131,7 +192,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- User Analytics Section - Bottom Row -->
+      <!-- User Analytics Section -->
       <div class="grid-bottom">
         <div class="card">
           <h2>User Analytics</h2>
@@ -205,13 +266,14 @@ onMounted(() => {
   background: transparent;
   margin-left: 1rem;
 }
-  /* Removed old grid */
-
 .card {
   background: white;
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.full-width-card {
+  grid-column: 1 / -1; /* Usage in grid */
 }
 .form-group { margin-bottom: 1rem; }
 .rules-list { margin-top: 1rem; }
@@ -256,10 +318,7 @@ onMounted(() => {
 .stats-table th { background: #f8f9fa; }
 .text-success { color: #28a745; font-weight: bold; }
 .text-danger { color: #dc3545; font-weight: bold; }
-.btn-sm {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.85rem;
-}
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.85rem; }
 .btn-outline-primary {
   border: 1px solid var(--color-primary);
   color: var(--color-primary);
@@ -274,58 +333,66 @@ onMounted(() => {
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+  display: flex; justify-content: center; align-items: center; z-index: 1000;
 }
 .modal-content {
-  background: white;
-  width: 90%;
-  max-width: 600px;
-  max-height: 80vh;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
+  background: white; width: 90%; max-width: 600px; max-height: 80vh;
+  border-radius: 8px; display: flex; flex-direction: column;
 }
 .modal-header {
-  padding: 1rem;
-  border-bottom: 1px solid #dee2e6;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  padding: 1rem; border-bottom: 1px solid #dee2e6;
+  display: flex; justify-content: space-between; align-items: center;
 }
-.modal-body {
-  padding: 1rem;
-  overflow-y: auto;
-}
-.close-btn {
-  background: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-}
-.history-item {
-  border-bottom: 1px solid #eee;
-  padding: 1rem 0;
-}
-.reason {
-  color: #666;
-  font-style: italic;
-}
+.modal-body { padding: 1rem; overflow-y: auto; }
+.close-btn { background: none; font-size: 1.5rem; cursor: pointer; }
+.history-item { border-bottom: 1px solid #eee; padding: 1rem 0; }
+.reason { color: #666; font-style: italic; }
+
+/* New Grid Layout */
 .grid-top {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
   margin-bottom: 2rem;
 }
-.grid-bottom {
-  display: block;
+.grid-bottom { display: block; }
+
+/* Modules styles */
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
 }
+.module-card {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #fcfcfc;
+}
+.module-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.module-header h3 { margin: 0; font-size: 1.1rem; }
+.status-indicator {
+  font-size: 0.8rem;
+  font-weight: bold;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+}
+.status-indicator.running { background: #d4edda; color: #155724; }
+.status-indicator.stopped { background: #e9ecef; color: #6c757d; }
+.status-indicator.not_created { background: #f8d7da; color: #721c24; }
+.module-btn { width: 100%; margin-top: 1rem; padding: 0.5rem; }
+.subtitle { color: #666; font-size: 0.9rem; }
+.btn-primary { background: #007bff; color: white; border: none; border-radius: 4px; }
+.btn-danger { background: #dc3545; color: white; border: none; border-radius: 4px; }
+
 @media (max-width: 900px) {
   .grid-top { grid-template-columns: 1fr; }
 }

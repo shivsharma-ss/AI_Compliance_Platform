@@ -14,19 +14,39 @@ services:
       - spotixx-network
 
   backend:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: spotixx-backend
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://spotixx_user:spotixx_password@db/spotixx_db
     depends_on:
       - db
+    networks:
+      - spotixx-network
+
+  # Microservices (Stopped by default)
+  presidio-service:
+    build:
+      context: ./modules/presidio_service
+      dockerfile: Dockerfile
+    container_name: spotixx-presidio
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    networks:
+      - spotixx-network
+
+  toxicity-service:
+    build:
+      context: ./modules/toxicity_service
+      dockerfile: Dockerfile
+    container_name: spotixx-toxicity
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
     networks:
       - spotixx-network
 

@@ -6,7 +6,10 @@ from api import auth, prompts
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
 
 # CORS (Allow frontend)
-origins = ["http://localhost:5173", "http://localhost:3000", "*"] # Adjust for prod
+origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,6 +28,10 @@ app.include_router(rules.router, prefix=f"{settings.API_V1_STR}/rules", tags=["r
 # New Admin Analytics Router
 from api import admin
 app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])
+
+# New Modules Router
+from api import modules
+app.include_router(modules.router, prefix=f"{settings.API_V1_STR}/modules", tags=["modules"])
 
 @app.get("/")
 def read_root():
