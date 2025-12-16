@@ -44,9 +44,20 @@ services:
   toxicity-service:
     build:
       context: ./modules/toxicity_service
-      dockerfile: Dockerfile
     container_name: spotixx-toxicity
     command: uvicorn main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8002:8000"
+    networks:
+      - spotixx-network
+
+  eu-ai-service:
+    build:
+      context: ./modules/eu_ai_service
+    container_name: spotixx-eu-ai
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8003:8000"
     networks:
       - spotixx-network
 

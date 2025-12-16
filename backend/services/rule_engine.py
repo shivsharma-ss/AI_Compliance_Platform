@@ -13,7 +13,8 @@ class RuleEngine:
         self.docker_manager = DockerManager()
         self.modules_config = {
             "spotixx-presidio": {"url": "http://spotixx-presidio:8000/analyze", "type": "PII"},
-            "spotixx-toxicity": {"url": "http://spotixx-toxicity:8000/predict", "type": "TOXICITY"}
+            "spotixx-toxicity": {"url": "http://spotixx-toxicity:8000/predict", "type": "TOXICITY"},
+            "spotixx-eu-ai": {"url": "http://spotixx-eu-ai:8000/analyze_risk", "type": "EU_AI_ACT"}
         }
 
     async def evaluate(self, request: PromptRequest) -> dict:
@@ -61,6 +62,13 @@ class RuleEngine:
                             if config["type"] == "TOXICITY" and data.get("is_toxic"):
                                 decision = "DECLINE"
                                 triggered.append("Toxic Content Detected")
+
+                            # Logic for EU AI Act
+                            if config["type"] == "EU_AI_ACT":
+                                risk = data.get("risk_level")
+                                if risk in ["UNACCEPTABLE", "HIGH"]:
+                                    decision = "DECLINE"
+                                    triggered.append(f"EU AI Act Violation: {risk} Risk ({data.get('category')})")
                                 
                     except Exception as e:
                         print(f"Failed to query {name}: {e}")
