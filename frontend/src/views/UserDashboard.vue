@@ -4,6 +4,7 @@ import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 const promptText = ref('')
 const intendedUse = ref('Fraud investigation')
 const context = ref('')
@@ -15,7 +16,7 @@ const submitPrompt = async () => {
   loading.value = true
   currentResult.value = null
   try {
-    const response = await axios.post('http://localhost:8000/api/v1/prompts/evaluate', {
+    const response = await axios.post(`${API_BASE}/api/v1/prompts/evaluate`, {
       prompt_text: promptText.value,
       intended_use: intendedUse.value,
       context: context.value
@@ -34,7 +35,7 @@ const submitPrompt = async () => {
 
 const fetchHistory = async () => {
   try {
-    const response = await axios.get('http://localhost:8000/api/v1/prompts/history', {
+    const response = await axios.get(`${API_BASE}/api/v1/prompts/history`, {
       headers: { Authorization: `Bearer ${authStore.token}` }
     })
     history.value = response.data
@@ -56,7 +57,7 @@ onMounted(() => {
   <div class="dashboard">
     <header class="header">
       <div class="container header-content">
-        <div class="logo">Spotixx Gateway</div>
+        <div class="logo">Sentinel Gateway</div>
         <div class="user-info">
           <span>{{ authStore.user?.role }}</span>
           <button @click="logout" class="btn btn-outline">Logout</button>

@@ -13,11 +13,11 @@ from sqlalchemy import select
 async def seed():
     async with AsyncSessionLocal() as db:
         # 1. Create Admin
-        result = await db.execute(select(User).where(User.email == "admin@spotixx.com"))
+        result = await db.execute(select(User).where(User.email == "admin@sentinel.ai"))
         if not result.scalars().first():
             print("Creating admin...")
             admin = User(
-                email="admin@spotixx.com",
+                email="admin@sentinel.ai",
                 hashed_password=get_password_hash("admin123"),
                 role="admin",
                 is_active=True

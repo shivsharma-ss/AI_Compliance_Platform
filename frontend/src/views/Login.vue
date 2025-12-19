@@ -14,13 +14,13 @@ const handleLogin = async () => {
 <template>
   <div class="login-container">
     <div class="card">
-      <h1>Spotixx Gateway</h1>
+      <h1>Sentinel Gateway</h1>
       <p class="subtitle">AI Governance & Compliance</p>
       
       <form @submit.prevent="handleLogin">
         <div class="form-group">
           <label>Email</label>
-          <input type="email" v-model="email" required class="input" placeholder="analyst@spotixx.com" />
+          <input type="email" v-model="email" required class="input" placeholder="analyst@sentinel.ai" />
         </div>
         
         <div class="form-group">

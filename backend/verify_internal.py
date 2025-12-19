@@ -6,12 +6,12 @@ async def check():
     try:
         async with httpx.AsyncClient() as client:
             print("Checking 415-555-0199...")
-            r1 = await client.post('http://spotixx-presidio:8000/analyze', json={'text': 'My phone number is 415-555-0199 call me.'})
+            r1 = await client.post('http://sentinel-presidio:8000/analyze', json={'text': 'My phone number is 415-555-0199 call me.'})
             print(f"Phone Status: {r1.status_code}")
             print(f"Phone Body: {r1.json()}")
 
-            print("\nChecking Email (spotixx-presidio)...")
-            r2 = await client.post('http://spotixx-presidio:8000/analyze', json={'text': 'My email is test@example.com'})
+            print("\nChecking Email (sentinel-presidio)...")
+            r2 = await client.post('http://sentinel-presidio:8000/analyze', json={'text': 'My email is test@example.com'})
             print(f"Email Status: {r2.status_code}")
 
             print("\nChecking Email (presidio-service)...")

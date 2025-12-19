@@ -23,6 +23,10 @@ class AnalyzeRequest(BaseModel):
 def health_check():
     return {"status": "ok", "model_loaded": model is not None}
 
+@app.get("/")
+def root():
+    return {"status": "ok"}
+
 @app.post("/predict")
 def predict_toxicity(request: AnalyzeRequest):
     if not model:

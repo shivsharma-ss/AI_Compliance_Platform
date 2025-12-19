@@ -17,4 +17,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Command is handled by docker-compose
+# Default command for Cloud Run; uses PORT env if provided
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]

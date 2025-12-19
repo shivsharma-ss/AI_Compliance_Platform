@@ -1,10 +1,10 @@
-MVP PRD — “Spotixx AI Governance Gateway” (Prompt Compliance + Admin)
+MVP PRD — “Sentinel AI Compliance Gateway” (Prompt Compliance + Admin)
 
 1. Background and context
 
 The EU AI Act entered into force 1 Aug 2024 with phased applicability; prohibited AI practices + AI literacy obligations apply from 2 Feb 2025, and additional governance/GPAI obligations apply later.  ￼ The Commission has also published interpretive guidelines on prohibited practices (non-binding) to support consistent application.  ￼
 
-Spotixx is building a governance/compliance SaaS for the EU AI Act.  ￼ This MVP acts as a concrete, demoable wedge: a policy gate + audit trail for LLM usage.
+Sentinel is building a governance/compliance SaaS for the EU AI Act.  ￼ This MVP acts as a concrete, demoable wedge: a policy gate + audit trail for LLM usage.
 
 2. Problem statement
 
@@ -27,7 +27,7 @@ Goals (MVP)
 Non-goals (MVP)
 	•	Legal-grade EU AI Act determinations (this remains simulated guidance, not legal advice).
 	•	Full model/system compliance workflow (risk management plans, technical documentation, post-market monitoring).
-	•	Multi-party encrypted computation (out of scope for MVP, though conceptually aligned with Spotixx/Qorum’s positioning).
+	•	Multi-party encrypted computation (out of scope for MVP, though conceptually aligned with the platform’s privacy-first positioning).
 
 4. Personas
 	1.	Fraud/AML Analyst (User): wants quick “is this allowed?” feedback for a prompt template.
@@ -156,7 +156,7 @@ Deployment
 	•	Cloud Run services behind HTTPS
 	•	DB hosted on Cloud SQL for Postgres (recommended for Cloud Run)
 
-This matches Spotixx’s publicly mentioned stack choices (Vue.js, Python, Docker, Cloud Run).  ￼
+This matches the platform’s stack choices (Vue.js, Python, Docker, Cloud Run).  ￼
 
 7.2 Key API endpoints (MVP)
 Auth

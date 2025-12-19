@@ -13,4 +13,4 @@ coverage/
 spotixx.db
 *.sqlite3
 backend/alembic.ini
-.agent/rules/
+.agent

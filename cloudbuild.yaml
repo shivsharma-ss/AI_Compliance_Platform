@@ -1,0 +1,186 @@
+steps:
+  # Step 1: Run tests
+  - name: 'gcr.io/cloud-builders/python'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cd backend
+        pip install -r requirements.txt
+        pytest tests/ -v
+
+  # Step 2: Build backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-backend:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-backend:latest'
+      - './backend'
+
+  # Step 3: Push backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-backend:${SHORT_SHA}'
+
+  # Step 4: Build frontend image (requires backend URL from previous deployment)
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-frontend:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-frontend:latest'
+      - '--build-arg'
+      - 'VITE_API_BASE=${_BACKEND_URL}'
+      - './frontend'
+
+  # Step 5: Push frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-frontend:${SHORT_SHA}'
+
+  # Step 6: Build toxicity service image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-toxicity:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-toxicity:latest'
+      - './modules/toxicity_service'
+
+  # Step 7: Push toxicity image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-toxicity:${SHORT_SHA}'
+
+  # Step 8: Build EU AI service image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-eu-ai:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-eu-ai:latest'
+      - './modules/eu_ai_service'
+
+  # Step 9: Push EU AI image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-eu-ai:${SHORT_SHA}'
+
+  # Step 10: Build Presidio service image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-presidio:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-presidio:latest'
+      - './modules/presidio_service'
+
+  # Step 11: Push Presidio image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-presidio:${SHORT_SHA}'
+
+  # Step 12: Deploy backend to Cloud Run
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - 'run'
+      - '--filename=k8s/'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-backend:${SHORT_SHA}'
+      - '--location=${_REGION}'
+      - '--cluster=sentinel-cluster'
+
+  # Step 13: Run database migrations (Cloud Run job)
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run jobs execute sentinel-migrate \
+          --project=${PROJECT_ID} \
+          --region=${_REGION} \
+          --wait
+
+  # Step 14: Deploy frontend to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run deploy sentinel-frontend \
+          --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-frontend:${SHORT_SHA} \
+          --project=${PROJECT_ID} \
+          --region=${_REGION} \
+          --platform=managed \
+          --allow-unauthenticated \
+          --no-traffic
+
+  # Step 15: Deploy microservices (toxicity, eu_ai, presidio)
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run deploy sentinel-toxicity \
+          --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-toxicity:${SHORT_SHA} \
+          --project=${PROJECT_ID} \
+          --region=${_REGION} \
+          --platform=managed \
+          --ingress=internal \
+          --no-allow-unauthenticated \
+          --no-traffic
+
+        gcloud run deploy sentinel-eu-ai \
+          --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-eu-ai:${SHORT_SHA} \
+          --project=${PROJECT_ID} \
+          --region=${_REGION} \
+          --platform=managed \
+          --ingress=internal \
+          --no-allow-unauthenticated \
+          --no-traffic
+
+        gcloud run deploy sentinel-presidio \
+          --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-presidio:${SHORT_SHA} \
+          --project=${PROJECT_ID} \
+          --region=${_REGION} \
+          --platform=managed \
+          --ingress=internal \
+          --no-allow-unauthenticated \
+          --no-traffic
+
+# Build images
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-backend:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-backend:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-frontend:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-frontend:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-toxicity:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-toxicity:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-eu-ai:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-eu-ai:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-presidio:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/sentinel-presidio:latest'
+
+# Default build timeout (in seconds)
+timeout: '3600s'
+
+# Substitution variables
+substitutions:
+  _REGION: 'europe-west1'
+  _ARTIFACT_REPO: 'sentinel-containers'
+  _BACKEND_URL: 'https://sentinel-backend-REPLACE_WITH_ACTUAL_URL.europe-west1.run.app'
+
+# Options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'

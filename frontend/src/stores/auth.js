@@ -3,6 +3,8 @@ import axios from 'axios'
 import { jwtDecode } from "jwt-decode";
 import router from '../router'
 
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         token: localStorage.getItem('token') || null,
@@ -16,9 +18,7 @@ export const useAuthStore = defineStore('auth', {
     actions: {
         async login(email, password) {
             try {
-                // Use relative URL assuming proxy or localhost direct access
-                // Ideally from env var
-                const response = await axios.post('http://localhost:8000/api/v1/auth/login',
+                const response = await axios.post(`${API_BASE}/api/v1/auth/login`,
                     new URLSearchParams({
                         'username': email,
                         'password': password

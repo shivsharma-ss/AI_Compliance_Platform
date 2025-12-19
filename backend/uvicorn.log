@@ -1,0 +1,36 @@
+INFO:     Started server process [65029]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-12-16 21:02:43,236 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-12-16 21:02:43,242 INFO sqlalchemy.engine.Engine SELECT user.id, user.email, user.hashed_password, user.role, user.is_active, user.created_at 
+FROM user 
+WHERE user.email = ?
+2025-12-16 21:02:43,243 INFO sqlalchemy.engine.Engine [generated in 0.00014s] ('admin@sentinel.ai',)
+2025-12-16 21:02:43,306 INFO sqlalchemy.engine.Engine ROLLBACK
+INFO:     127.0.0.1:50222 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+2025-12-16 21:02:52,171 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-12-16 21:02:52,172 INFO sqlalchemy.engine.Engine SELECT user.id, user.email, user.hashed_password, user.role, user.is_active, user.created_at 
+FROM user 
+WHERE user.id = ?
+2025-12-16 21:02:52,172 INFO sqlalchemy.engine.Engine [generated in 0.00009s] (1,)
+2025-12-16 21:02:52,175 INFO sqlalchemy.engine.Engine SELECT user.id, user.email, anon_1.total, anon_1.accepted_count, anon_1.declined_count 
+FROM user LEFT OUTER JOIN (SELECT promptrequest.user_id AS user_id, count(promptrequest.id) AS total, sum(CASE WHEN (promptrequest.decision = ?) THEN ? ELSE ? END) AS accepted_count, sum(CASE WHEN (promptrequest.decision = ?) THEN ? ELSE ? END) AS declined_count 
+FROM promptrequest GROUP BY promptrequest.user_id) AS anon_1 ON user.id = anon_1.user_id 
+WHERE user.role != ?
+2025-12-16 21:02:52,175 INFO sqlalchemy.engine.Engine [generated in 0.00013s] ('ACCEPT', 1, 0, 'DECLINE', 1, 0, 'admin')
+2025-12-16 21:02:52,177 INFO sqlalchemy.engine.Engine ROLLBACK
+INFO:     127.0.0.1:50226 - "GET /api/v1/admin/users/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50230 - "GET /api/v1/admin/users/stats HTTP/1.1" 401 Unauthorized
+2025-12-16 21:03:33,242 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-12-16 21:03:33,244 INFO sqlalchemy.engine.Engine SELECT user.id, user.email, user.hashed_password, user.role, user.is_active, user.created_at 
+FROM user 
+WHERE user.email = ?
+2025-12-16 21:03:33,244 INFO sqlalchemy.engine.Engine [cached since 50s ago] ('user@test.com',)
+2025-12-16 21:03:33,303 INFO sqlalchemy.engine.Engine ROLLBACK
+INFO:     127.0.0.1:50237 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50374 - "GET /api/v1/admin/users/stats HTTP/1.1" 401 Unauthorized
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65029]
