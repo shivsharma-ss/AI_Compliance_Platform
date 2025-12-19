@@ -49,9 +49,20 @@ class Settings(BaseSettings):
     @field_validator("ENABLED_MODULES", mode="before")
     @classmethod
     def split_enabled_modules(cls, value):
-        """Allow comma-separated env var for enabled modules."""
+        """Allow JSON array or comma-separated env var for enabled modules."""
         if isinstance(value, str):
-            return [m.strip() for m in value.split(",") if m.strip()]
+            s = value.strip()
+            # If it looks like JSON array, parse it first
+            if s.startswith("["):
+                try:
+                    import json
+                    parsed = json.loads(s)
+                    if isinstance(parsed, list):
+                        return [m for m in parsed]
+                except Exception:
+                    pass
+            # Otherwise, treat as comma-separated list
+            return [m.strip() for m in s.split(",") if m.strip()]
         return value
     
     class Config:
