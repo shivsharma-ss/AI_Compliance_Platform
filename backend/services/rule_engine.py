@@ -50,10 +50,16 @@ class RuleEngine:
         print(f"RuleEngine active_services: {active_services}")
         
         import urllib.parse
-        from core.config import settings
+        from models.module import Module
 
-        # Determine which modules are enabled (by env var). If not set, all modules are allowed.
-        enabled = set(settings.ENABLED_MODULES or [])
+        # Determine which modules are enabled (persisted in DB). If not set, all modules are allowed.
+        enabled = set()
+        try:
+            result = await self.db.execute(select(Module).where(Module.enabled == True))
+            enabled = set([m.name for m in result.scalars().all()])
+        except Exception:
+            # If DB not available or query fails, fall back to enabling all
+            enabled = set()
 
         async with httpx.AsyncClient(timeout=5.0) as client:
             for service in active_services:
@@ -64,7 +70,7 @@ class RuleEngine:
 
                 # If an explicit enabled list is set, honor it
                 if enabled and name not in enabled:
-                    print(f"Skipping {name} because it's not in ENABLED_MODULES")
+                    print(f"Skipping {name} because it's not enabled in DB")
                     continue
 
                 config = self.modules_config[name]

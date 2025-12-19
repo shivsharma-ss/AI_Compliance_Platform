@@ -4,6 +4,7 @@ import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 const rules = ref([])
 const stats = ref([])
 const modules = ref([])  // New: Modules list
@@ -18,7 +19,7 @@ const moduleLoading = ref({}) // New: Track loading state per module
 
 const fetchRules = async () => {
   try {
-    const response = await axios.get('http://localhost:8000/api/v1/rules/', {
+    const response = await axios.get(`${API_BASE}/api/v1/rules/`, {
       headers: { Authorization: `Bearer ${authStore.token}` }
     })
     rules.value = response.data
@@ -29,7 +30,7 @@ const fetchRules = async () => {
 
 const fetchStats = async () => {
   try {
-    const response = await axios.get('http://localhost:8000/api/v1/admin/users/stats', {
+    const response = await axios.get(`${API_BASE}/api/v1/admin/users/stats`, {
       headers: { Authorization: `Bearer ${authStore.token}` }
     })
     stats.value = response.data
@@ -41,7 +42,7 @@ const fetchStats = async () => {
 // New: Fetch Modules
 const fetchModules = async () => {
   try {
-    const response = await axios.get('http://localhost:8000/api/v1/modules/', {
+    const response = await axios.get(`${API_BASE}/api/v1/modules/`, {
       headers: { Authorization: `Bearer ${authStore.token}` }
     })
     modules.value = response.data
@@ -55,7 +56,7 @@ const toggleModule = async (module) => {
   const action = module.status === 'running' ? 'stop' : 'start'
   moduleLoading.value[module.name] = true
   try {
-    await axios.post(`http://localhost:8000/api/v1/modules/${module.name}/${action}`, {}, {
+    await axios.post(`${API_BASE}/api/v1/modules/${module.name}/${action}`, {}, {
       headers: { Authorization: `Bearer ${authStore.token}` }
     })
     // Refresh list to update status
@@ -68,10 +69,26 @@ const toggleModule = async (module) => {
   }
 }
 
+// New: Toggle enabled/disabled persisted flag
+const toggleEnabled = async (module) => {
+  moduleLoading.value[module.name] = true
+  try {
+    await axios.post(`${API_BASE}/api/v1/modules/admin/${module.name}`, { enabled: !module.enabled }, {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
+    await fetchModules()
+  } catch (error) {
+    console.error('Failed to update module enabled', error)
+    alert(`Failed to update module: ${error.response?.data?.detail || error.message}`)
+  } finally {
+    moduleLoading.value[module.name] = false
+  }
+}
+
 const viewUserHistory = async (user) => {
   selectedUserEmail.value = user.email
   try {
-    const response = await axios.get(`http://localhost:8000/api/v1/admin/users/${user.id}/history`, {
+    const response = await axios.get(`${API_BASE}/api/v1/admin/users/${user.id}/history`, {
       headers: { Authorization: `Bearer ${authStore.token}` }
     })
     selectedUserHistory.value = response.data
@@ -85,7 +102,7 @@ const addRule = async () => {
   if (!newRuleName.value || !newRulePattern.value) return
   loading.value = true
   try {
-    await axios.post('http://localhost:8000/api/v1/rules/', {
+    await axios.post(`${API_BASE}/api/v1/rules/`, {
       name: newRuleName.value,
       description: 'Added via Admin Dashboard',
       type: 'REGEX',
@@ -122,7 +139,7 @@ onMounted(() => {
   <div class="dashboard">
     <header class="header">
       <div class="container header-content">
-        <div class="logo">Spotixx Admin</div>
+        <div class="logo">Sentinel Admin</div>
         <div class="user-info">
           <span>{{ authStore.user?.email }}</span>
           <button @click="logout" class="btn btn-outline">Logout</button>
@@ -145,17 +162,33 @@ onMounted(() => {
                   {{ mod.status === 'running' ? 'Active' : 'Offline' }}
                 </span>
               </div>
-              <p v-if="mod.name === 'spotixx-presidio'">Detects PII (Phones, Emails, Credit Cards) using Microsoft Presidio + SpaCy.</p>
-              <p v-if="mod.name === 'spotixx-toxicity'">Detects toxic, obscene, or insulting content using Detoxify/BERT.</p>
+              <p v-if="mod.name === 'sentinel-presidio'">Detects PII (Phones, Emails, Credit Cards) using Microsoft Presidio + SpaCy.</p>
+              <p v-if="mod.name === 'sentinel-toxicity'">Detects toxic, obscene, or insulting content using Detoxify/BERT.</p>
+              <p v-if="mod.name === 'sentinel-eu-ai'">Classifies AI use cases against EU AI Act risk tiers (unacceptable/high/minimal) using zero-shot models with heuristic fallback.</p>
               
-              <button 
-                @click="toggleModule(mod)" 
-                class="btn module-btn" 
-                :class="mod.status === 'running' ? 'btn-danger' : 'btn-primary'"
-                :disabled="moduleLoading[mod.name]"
-              >
-                {{ moduleLoading[mod.name] ? 'Processing...' : (mod.status === 'running' ? 'Disable (Stop Container)' : 'Enable (Start Container)') }}
-              </button>
+              <div class="module-controls">
+                <div class="toggle-enabled">
+                  <label>
+                    <input type="checkbox" :checked="mod.enabled" @change="toggleEnabled(mod)" :disabled="moduleLoading[mod.name]" />
+                    <strong>Enabled for evaluations</strong>
+                  </label>
+                </div>
+
+                <div v-if="mod.start_stop_supported !== false">
+                  <button 
+                    @click="toggleModule(mod)" 
+                    class="btn module-btn" 
+                    :class="mod.status === 'running' ? 'btn-danger' : 'btn-primary'"
+                    :disabled="moduleLoading[mod.name]"
+                  >
+                    {{ moduleLoading[mod.name] ? 'Processing...' : (mod.status === 'running' ? 'Disable (Stop Container)' : 'Enable (Start Container)') }}
+                  </button>
+                </div>
+                <div v-else>
+                  <p class="subtitle">This module is managed in Cloud Run and cannot be started/stopped from the UI.</p>
+                  <a v-if="mod.url" :href="mod.url" target="_blank" class="btn module-btn btn-primary">Open Service</a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
