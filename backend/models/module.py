@@ -1,7 +1,10 @@
-from sqlalchemy import Column, String, Boolean, DateTime, func
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, func
 from .base import Base
 
 class Module(Base):
+    __tablename__ = "module"
+
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, unique=True)
     display_name = Column(String, nullable=True)
     enabled = Column(Boolean, default=True, nullable=False)
