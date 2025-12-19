@@ -50,47 +50,60 @@ class RuleEngine:
         print(f"RuleEngine active_services: {active_services}")
         
         import urllib.parse
+        from core.config import settings
+
+        # Determine which modules are enabled (by env var). If not set, all modules are allowed.
+        enabled = set(settings.ENABLED_MODULES or [])
+
         async with httpx.AsyncClient(timeout=5.0) as client:
             for service in active_services:
                 name = service["name"]
-                if service["status"] == "running" and name in self.modules_config:
-                    config = self.modules_config[name]
-                    # Prefer the service URL exposed by DockerManager (used in cloud mode),
-                    # otherwise fall back to the local / docker-compose URL defined in modules_config.
-                    reported_url = service.get("url") or config.get("url")
-                    if not reported_url:
-                        # No reachable URL for this service; skip it
-                        continue
+                # Skip services that aren't running or not part of our configured modules
+                if service["status"] != "running" or name not in self.modules_config:
+                    continue
 
-                    # If the reported URL is only a base (no path), append the module path from config
-                    # e.g. reported_url: https://sentinel-presidio...  config['url']: http://sentinel-presidio:8000/analyze
-                    # Desired: https://sentinel-presidio.../analyze
-                    try:
-                        parsed_cfg = urllib.parse.urlparse(config.get("url"))
-                        cfg_path = parsed_cfg.path or ""
-                    except Exception:
-                        cfg_path = ""
+                # If an explicit enabled list is set, honor it
+                if enabled and name not in enabled:
+                    print(f"Skipping {name} because it's not in ENABLED_MODULES")
+                    continue
 
-                    # Normalize reported_url
-                    if urllib.parse.urlparse(reported_url).path in ("", "/") and cfg_path:
-                        service_url = reported_url.rstrip('/') + cfg_path
-                    else:
-                        service_url = reported_url
+                config = self.modules_config[name]
+                # Prefer the service URL exposed by DockerManager (used in cloud mode),
+                # otherwise fall back to the local / docker-compose URL defined in modules_config.
+                reported_url = service.get("url") or config.get("url")
+                if not reported_url:
+                    # No reachable URL for this service; skip it
+                    continue
 
-                    async def try_post(url):
-                        return await client.post(url, json={"text": request.prompt_text})
+                # If the reported URL is only a base (no path), append the module path from config
+                # e.g. reported_url: https://sentinel-presidio...  config['url']: http://sentinel-presidio:8000/analyze
+                # Desired: https://sentinel-presidio.../analyze
+                try:
+                    parsed_cfg = urllib.parse.urlparse(config.get("url"))
+                    cfg_path = parsed_cfg.path or ""
+                except Exception:
+                    cfg_path = ""
 
-                    # Try once, and retry once on transient network errors
-                    resp = None
+                # Normalize reported_url
+                if urllib.parse.urlparse(reported_url).path in ("", "/") and cfg_path:
+                    service_url = reported_url.rstrip('/') + cfg_path
+                else:
+                    service_url = reported_url
+
+                async def try_post(url):
+                    return await client.post(url, json={"text": request.prompt_text})
+
+                # Try once, and retry once on transient network errors
+                resp = None
+                try:
+                    resp = await try_post(service_url)
+                except Exception as e1:
+                    # Retry once for transient failures
                     try:
                         resp = await try_post(service_url)
-                    except Exception as e1:
-                        # Retry once for transient failures
-                        try:
-                            resp = await try_post(service_url)
-                        except Exception as e2:
-                            print(f"Failed to query {name} at {service_url}: {e2}")
-                            continue
+                    except Exception as e2:
+                        print(f"Failed to query {name} at {service_url}: {e2}")
+                        continue
 
                     if resp and resp.status_code == 200:
                         data = resp.json()
