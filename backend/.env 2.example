@@ -1,0 +1,14 @@
+# Database
+DATABASE_URL=postgresql+asyncpg://sentinel_admin:YOUR_PASSWORD@localhost/sentinel_db
+
+# Security - NEVER commit real values to Git!
+SECRET_KEY=GENERATE_A_STRONG_SECRET_KEY_HERE
+
+# CORS - Update for production
+BACKEND_CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+
+# Seeding (dev only)
+SEED_DEFAULT_USERS=true
+
+# OpenAI (optional)
+OPENAI_API_KEY=sk-YOUR_KEY_HERE
