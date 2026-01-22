@@ -6,7 +6,8 @@ from typing import Optional, Tuple
 from pathlib import Path
 
 # Add backend to path
-sys.path.append(os.path.join(os.getcwd(), 'backend'))
+root_dir = Path(__file__).resolve().parent
+sys.path.append(str(root_dir / "backend"))
 
 from db.session import AsyncSessionLocal
 from models.user import User
@@ -61,6 +62,7 @@ async def seed():
         )
 
     async with AsyncSessionLocal() as db:
+        generated_credentials = []
         result = await db.execute(select(User).where(User.email == admin_email))
         if not result.scalars().first():
             print("Creating admin...")
@@ -73,7 +75,7 @@ async def seed():
             )
             db.add(admin)
             if generated:
-                write_generated_password("admin", admin_email, admin_password)
+                generated_credentials.append(("admin", admin_email, admin_password))
         else:
             print("Admin already exists.")
 
@@ -94,13 +96,15 @@ async def seed():
                 )
                 db.add(user)
                 if generated:
-                    write_generated_password("test_user", test_email, test_password)
+                    generated_credentials.append(("test_user", test_email, test_password))
             else:
                 print("Test user already exists.")
         else:
             print("Skipping test user creation.")
         
         await db.commit()
+        for label, email, password in generated_credentials:
+            write_generated_password(label, email, password)
         print("Seeding complete.")
 
 

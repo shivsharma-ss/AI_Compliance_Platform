@@ -34,7 +34,7 @@ async def check():
             r5 = await client.post('http://spotixx-presidio:8000/analyze', json={'text': 'I live at 123 Main St, San Francisco, CA.'})
             print(f"Address Status: {r5.status_code}")
             print(f"Address Body: {r5.json()}")
-    except Exception as e:
+    except httpx.HTTPError as e:
         print(f"Error: {e}")
 
 if __name__ == "__main__":
