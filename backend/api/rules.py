@@ -7,7 +7,7 @@ from db.session import get_db
 from models.user import User
 from models.rule import Rule
 from schemas.rule import RuleCreate, RuleResponse
-from api.prompts import get_current_user
+from api.deps import get_current_user
 
 router = APIRouter()
 

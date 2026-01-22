@@ -8,33 +8,10 @@ from models.user import User
 from models.prompt import PromptRequest
 from schemas.prompt import PromptRequestCreate, PromptRequestResponse
 from services.rule_engine import RuleEngine
-from core.security import verify_password
 from core.config import settings
-from jose import jwt, JWTError
-from fastapi.security import OAuth2PasswordBearer
+from api.deps import get_current_user
 
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
-
-async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    
-    result = await db.execute(select(User).where(User.id == int(user_id)))
-    user = result.scalars().first()
-    if user is None:
-        raise credentials_exception
-    return user
 
 @router.post("/evaluate", response_model=PromptRequestResponse)
 async def evaluate_prompt(
@@ -42,6 +19,15 @@ async def evaluate_prompt(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    """
+    Evaluate a prompt with the rule engine, persist the request and its evaluation, and return the saved record.
+    
+    Parameters:
+        request_in (PromptRequestCreate): Input payload containing the prompt_text, intended_use, and optional context.
+    
+    Returns:
+        PromptRequestResponse: API response schema wrapping the persisted PromptRequest with evaluation fields and database-managed values (e.g., `id`, `created_at`).
+    """
     # 1. Evaluate
     engine = RuleEngine(db)
     # Convert schema to temp object or just use fields
