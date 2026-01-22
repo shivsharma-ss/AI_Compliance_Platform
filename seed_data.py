@@ -28,8 +28,9 @@ def is_local_env() -> bool:
 
 
 def build_password(env_value: Optional[str]) -> Tuple[str, bool]:
-    if env_value:
-        return env_value, False
+    cleaned = env_value.strip() if env_value is not None else ""
+    if cleaned:
+        return cleaned, False
     return secrets.token_urlsafe(24), True
 
 

@@ -92,15 +92,13 @@ def analyze_risk(request: AnalyzeRequest):
         # Determine Risk Level
         risk_level = RISK_MAPPING.get(top_label, "UNKNOWN")
         
-        # Threshold check (only flag if confident)
-        if score < 0.6:
-            risk_level = "MINIMAL"
-            top_label = "uncertain (low confidence)"
+        low_confidence = score < 0.6
 
         return {
             "risk_level": risk_level,
             "category": top_label,
-            "confidence": score
+            "confidence": score,
+            "low_confidence": low_confidence
         }
         
     except Exception:

@@ -64,6 +64,8 @@ services:
       - spotixx-network
 
   toxicity-service:
+    profiles:
+      - microservices
     build:
       context: ./modules/toxicity_service
     container_name: spotixx-toxicity
@@ -74,6 +76,8 @@ services:
       - spotixx-network
 
   eu-ai-service:
+    profiles:
+      - microservices
     build:
       context: ./modules/eu_ai_service
     container_name: spotixx-eu-ai

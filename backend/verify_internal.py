@@ -4,9 +4,9 @@ import sys
 
 async def check():
     """
-    Execute a sequence of HTTP POST requests to predefined analysis endpoints and print each response.
+    Execute a sequence of HTTP POST requests to the spotixx-presidio /analyze endpoint and print each response.
     
-    Sends test texts (phone number, email, person name, and address) to /analyze on two services (spotixx-presidio and presidio-service), printing each request's HTTP status code and, where available, the parsed JSON response body. Any raised exception is caught and printed to stdout.
+    Sends test texts (phone number, email, person name, and address) to spotixx-presidio, printing each request's HTTP status code and any parsed JSON response body. Any raised exception is caught and printed to stdout.
     """
     try:
         timeout = httpx.Timeout(5.0)

@@ -15,8 +15,13 @@ RUN python -m spacy download en_core_web_sm
 # Copy app code
 COPY . .
 
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser \
+    && chown -R appuser:appgroup /app
+
 # Expose port
 EXPOSE 8000
+
+USER appuser
 
 # Command to run (overridden by docker-compose)
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

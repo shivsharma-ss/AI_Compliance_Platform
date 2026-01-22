@@ -26,7 +26,7 @@ async def evaluate_prompt(
         request_in (PromptRequestCreate): Input payload containing the prompt_text, intended_use, and optional context.
     
     Returns:
-        PromptRequest: The persisted PromptRequest populated with evaluation results (`decision`, `reason_summary`) and database-managed fields (e.g., `id`, `created_at`).
+        PromptRequestResponse: API response schema wrapping the persisted PromptRequest with evaluation fields and database-managed values (e.g., `id`, `created_at`).
     """
     # 1. Evaluate
     engine = RuleEngine(db)

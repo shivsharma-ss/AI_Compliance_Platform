@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir \
 
 # Create directory for model cache
 RUN mkdir -p /app/model_cache
-ENV TRANSFORMERS_CACHE=/app/model_cache
+ENV HF_HOME=/app/model_cache
 
 COPY . .
 
