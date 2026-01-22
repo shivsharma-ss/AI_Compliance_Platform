@@ -3,10 +3,13 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from jose import jwt, JWTError
+import logging
 
 from db.session import get_db
 from models.user import User
 from core.config import settings
+
+logger = logging.getLogger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
@@ -33,14 +36,21 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        user_id: str = payload.get("sub")
+        user_id = payload.get("sub")
         if user_id is None:
             raise credentials_exception
-    except JWTError:
-        raise credentials_exception
+        try:
+            user_id_int = int(user_id)
+        except (TypeError, ValueError) as exc:
+            logger.warning("Invalid user id in token payload", extra={"user_id": user_id})
+            raise credentials_exception from exc
+    except JWTError as exc:
+        raise credentials_exception from exc
     
-    result = await db.execute(select(User).where(User.id == int(user_id)))
+    result = await db.execute(select(User).where(User.id == user_id_int))
     user = result.scalars().first()
     if user is None:
+        raise credentials_exception
+    if not user.is_active:
         raise credentials_exception
     return user

@@ -2,10 +2,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from models.rule import Rule
 from models.prompt import PromptRequest
+import logging
 import re
 import json
 import httpx
 from managers.docker_manager import DockerManager
+
+logger = logging.getLogger(__name__)
 
 class RuleEngine:
     def __init__(self, db: AsyncSession):
@@ -23,10 +26,28 @@ class RuleEngine:
         self.db = db
         self.docker_manager = DockerManager()
         self.modules_config = {
-            "spotixx-presidio": {"url": "http://spotixx-presidio:8000/analyze", "type": "PII"},
-            "spotixx-toxicity": {"url": "http://spotixx-toxicity:8000/predict", "type": "TOXICITY"},
-            "spotixx-eu-ai": {"url": "http://spotixx-eu-ai:8000/analyze_risk", "type": "EU_AI_ACT"}
+            "spotixx-presidio": {
+                "url": "http://spotixx-presidio:8000/analyze",
+                "type": "PII",
+                "fail_closed": False,
+            },
+            "spotixx-toxicity": {
+                "url": "http://spotixx-toxicity:8000/predict",
+                "type": "TOXICITY",
+                "fail_closed": False,
+            },
+            "spotixx-eu-ai": {
+                "url": "http://spotixx-eu-ai:8000/analyze_risk",
+                "type": "EU_AI_ACT",
+                "fail_closed": False,
+            },
         }
+
+    def _notify_monitoring(self, service_name: str, error: Exception) -> None:
+        logger.warning(
+            "Monitoring alert: rule service failure",
+            extra={"service": service_name, "error": str(error)},
+        )
 
     async def evaluate(self, request: PromptRequest) -> dict:
         """
@@ -93,18 +114,15 @@ class RuleEngine:
                                     triggered.append(f"EU AI Act Violation: {risk} Risk ({data.get('category')})")
                                 
                     except Exception as e:
-                        print(f"Failed to query {name}: {e}")
-                        # Fail open or closed? For now, just log.
+                        fail_closed = config.get("fail_closed", False)
+                        logger.error("Failed to query service", exc_info=True, extra={"service": name})
+                        self._notify_monitoring(name, e)
+                        if fail_closed:
+                            decision = "DECLINE"
+                            triggered.append(f"Service Failure: {name}")
+                        continue
 
         if triggered:
-             # If already declined by regex, keep it. If declined by module, update.
-            if decision == "ACCEPT": # If triggered but warn only? (Logic simplified for MVP)
-                 pass 
-            
-            # If any trigger caused a decline
-            if "DECLINE" in [decision]: # Redundant check but clear intent
-                decision = "DECLINE"
-                
             reason_summary = f"Triggered {len(triggered)} checks: " + ", ".join(triggered)
 
         return {

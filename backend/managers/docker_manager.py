@@ -1,5 +1,12 @@
+import logging
 import docker
-from typing import List, Dict, Optional
+from docker import errors
+from typing import List, Dict
+
+KNOWN_MODULES = ["spotixx-presidio", "spotixx-toxicity", "spotixx-eu-ai"]
+ALLOWED_SERVICES = set(KNOWN_MODULES)
+
+logger = logging.getLogger(__name__)
 
 class DockerManager:
     def __init__(self):
@@ -19,7 +26,7 @@ class DockerManager:
         List available compliance modules and their status.
         
         If the Docker client is unavailable, returns each known module with status "unknown".
-        Otherwise, for each known module returns the container's status (e.g., "running", "exited"), "not_created" if the container is absent, or "stopped" as a fallback.
+        Otherwise, for each known module returns the container's status (e.g., "running", "exited"), "not_created" if the container is absent, or "unknown"/"error" for failure cases.
         
         Returns:
             services (List[Dict]): List of service dictionaries with keys:
@@ -28,24 +35,35 @@ class DockerManager:
                 - display_name (str): Human-friendly name derived from `name`.
         """
         services = []
-        # Hardcoded list of known modules in docker-compose
-        known_modules = ["spotixx-presidio", "spotixx-toxicity"]
+        known_modules = KNOWN_MODULES
         
         if not self.client:
-            return [{"name": name, "status": "unknown"} for name in known_modules]
+            return [
+                {
+                    "name": name,
+                    "display_name": name.replace("spotixx-", "").title(),
+                    "status": "unknown",
+                }
+                for name in known_modules
+            ]
 
         for name in known_modules:
-            status = "stopped"
+            status = "unknown"
             try:
                 container = self.client.containers.get(name)
                 status = container.status
-            except docker.errors.NotFound:
+            except errors.NotFound:
                 status = "not_created"
-            
+            except errors.APIError:
+                logger.exception("Docker API error while checking service", extra={"service": name})
+                status = "error"
+            except Exception:
+                logger.exception("Unexpected error while checking service", extra={"service": name})
+                status = "error"
+
             services.append({
                 "name": name,
                 "status": status,
-                # Friendly display name
                 "display_name": name.replace("spotixx-", "").title()
             })
         return services
@@ -60,6 +78,9 @@ class DockerManager:
         Returns:
             `true` if the container was started successfully, `false` otherwise.
         """
+        if service_name not in ALLOWED_SERVICES:
+            logger.warning("Service name not allowed: %s", service_name)
+            return False
         if not self.client:
             return False
         try:
@@ -80,6 +101,9 @@ class DockerManager:
         Returns:
             True if the container was stopped successfully, False otherwise.
         """
+        if service_name not in ALLOWED_SERVICES:
+            logger.warning("Service name not allowed: %s", service_name)
+            return False
         if not self.client:
             return False
         try:

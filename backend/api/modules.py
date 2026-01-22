@@ -6,6 +6,8 @@ from models.user import User
 router = APIRouter()
 docker_manager = DockerManager()
 
+ALLOWED_MODULES = {"spotixx-presidio", "spotixx-toxicity", "spotixx-eu-ai"}
+
 @router.get("/")
 def list_modules(current_user: User = Depends(get_current_user)):
     """
@@ -40,8 +42,12 @@ def start_module(module_name: str, current_user: User = Depends(get_current_user
     """
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
+
+    normalized_name = module_name.strip()
+    if normalized_name not in ALLOWED_MODULES:
+        raise HTTPException(status_code=400, detail="Invalid module name")
         
-    success = docker_manager.start_service(module_name)
+    success = docker_manager.start_service(normalized_name)
     if not success:
         raise HTTPException(status_code=500, detail=f"Failed to start {module_name}")
     
@@ -64,8 +70,12 @@ def stop_module(module_name: str, current_user: User = Depends(get_current_user)
     """
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
+
+    normalized_name = module_name.strip()
+    if normalized_name not in ALLOWED_MODULES:
+        raise HTTPException(status_code=400, detail="Invalid module name")
         
-    success = docker_manager.stop_service(module_name)
+    success = docker_manager.stop_service(normalized_name)
     if not success:
         raise HTTPException(status_code=500, detail=f"Failed to stop {module_name}")
     

@@ -9,7 +9,8 @@ async def check():
     Sends test texts (phone number, email, person name, and address) to /analyze on two services (spotixx-presidio and presidio-service), printing each request's HTTP status code and, where available, the parsed JSON response body. Any raised exception is caught and printed to stdout.
     """
     try:
-        async with httpx.AsyncClient() as client:
+        timeout = httpx.Timeout(5.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
             print("Checking 415-555-0199...")
             r1 = await client.post('http://spotixx-presidio:8000/analyze', json={'text': 'My phone number is 415-555-0199 call me.'})
             print(f"Phone Status: {r1.status_code}")
@@ -19,18 +20,18 @@ async def check():
             r2 = await client.post('http://spotixx-presidio:8000/analyze', json={'text': 'My email is test@example.com'})
             print(f"Email Status: {r2.status_code}")
 
-            print("\nChecking Email (presidio-service)...")
-            r3 = await client.post('http://presidio-service:8000/analyze', json={'text': 'My email is test@example.com'})
+            print("\nChecking Email (spotixx-presidio)...")
+            r3 = await client.post('http://spotixx-presidio:8000/analyze', json={'text': 'My email is test@example.com'})
             print(f"Service Name Status: {r3.status_code}")
             print(f"Service Name Body: {r3.json()}")
 
-            print("\nChecking Person Name (presidio-service)...")
-            r4 = await client.post('http://presidio-service:8000/analyze', json={'text': 'My name is John Doe.'})
+            print("\nChecking Person Name (spotixx-presidio)...")
+            r4 = await client.post('http://spotixx-presidio:8000/analyze', json={'text': 'My name is John Doe.'})
             print(f"Name Status: {r4.status_code}")
             print(f"Name Body: {r4.json()}")
 
-            print("\nChecking Address (presidio-service)...")
-            r5 = await client.post('http://presidio-service:8000/analyze', json={'text': 'I live at 123 Main St, San Francisco, CA.'})
+            print("\nChecking Address (spotixx-presidio)...")
+            r5 = await client.post('http://spotixx-presidio:8000/analyze', json={'text': 'I live at 123 Main St, San Francisco, CA.'})
             print(f"Address Status: {r5.status_code}")
             print(f"Address Body: {r5.json()}")
     except Exception as e:
