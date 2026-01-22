@@ -19,12 +19,6 @@ async def evaluate_prompt(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-`@router.post`("/evaluate", response_model=PromptRequestResponse)
-async def evaluate_prompt(
-    request_in: PromptRequestCreate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
     """
     Evaluate a prompt with the rule engine, persist the request and its evaluation, and return the saved record.
     
@@ -35,7 +29,6 @@ async def evaluate_prompt(
         PromptRequest: The persisted PromptRequest populated with evaluation results (`decision`, `reason_summary`) and database-managed fields (e.g., `id`, `created_at`).
     """
     # 1. Evaluate
-    engine = RuleEngine(db)
     engine = RuleEngine(db)
     # Convert schema to temp object or just use fields
     # We need a PromptRequest object but don't save it yet until we get result? 

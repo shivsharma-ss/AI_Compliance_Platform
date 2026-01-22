@@ -31,6 +31,7 @@ services:
       - docker-socket-proxy
     networks:
       - spotixx-network
+      - docker-socket-net
     cap_drop:
       - ALL
 
@@ -43,7 +44,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      - spotixx-network
+      - docker-socket-net
     read_only: true
     security_opt:
       - no-new-privileges:true
@@ -97,6 +98,9 @@ services:
 networks:
   spotixx-network:
     driver: bridge
+  docker-socket-net:
+    driver: bridge
+    internal: true
 
 volumes:
   postgres_data:
