@@ -3,6 +3,11 @@ import asyncio
 import sys
 
 async def check():
+    """
+    Execute a sequence of HTTP POST requests to predefined analysis endpoints and print each response.
+    
+    Sends test texts (phone number, email, person name, and address) to /analyze on two services (spotixx-presidio and presidio-service), printing each request's HTTP status code and, where available, the parsed JSON response body. Any raised exception is caught and printed to stdout.
+    """
     try:
         async with httpx.AsyncClient() as client:
             print("Checking 415-555-0199...")

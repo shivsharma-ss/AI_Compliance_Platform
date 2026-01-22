@@ -9,6 +9,17 @@ from managers.docker_manager import DockerManager
 
 class RuleEngine:
     def __init__(self, db: AsyncSession):
+        """
+        Create a RuleEngine instance and configure its runtime dependencies.
+        
+        Initializes and stores the database session, creates a DockerManager for service discovery, and defines the mapping of supported microservices to their endpoint URLs and evaluation types:
+        - "spotixx-presidio": PII analysis endpoint
+        - "spotixx-toxicity": toxicity prediction endpoint
+        - "spotixx-eu-ai": EU AI Act risk analysis endpoint
+        
+        Parameters:
+            db (AsyncSession): Async database session used for querying and persisting rule data.
+        """
         self.db = db
         self.docker_manager = DockerManager()
         self.modules_config = {
@@ -19,7 +30,18 @@ class RuleEngine:
 
     async def evaluate(self, request: PromptRequest) -> dict:
         """
-        Evaluates a prompt against active rules and microservices.
+        Evaluate a prompt against active regex-based rules and configured microservices to produce a moderation decision.
+        
+        Checks active REGEX rules from the database and queries running microservices (PII, TOXICITY, EU_AI_ACT) to determine whether the prompt should be accepted or declined. Triggers are collected from any matching rules or microservice responses and summarized in the returned result.
+        
+        Parameters:
+            request (PromptRequest): The prompt evaluation request containing the text to inspect and any associated metadata.
+        
+        Returns:
+            dict: Evaluation outcome with keys:
+                - decision (str): "ACCEPT" or "DECLINE" indicating the final moderation decision.
+                - reason_summary (str): Human-readable summary of triggered checks and reasons.
+                - triggered_rules (list): Placeholder list for triggered rule identifiers (currently empty).
         """
         # Fetch active rules (Regex)
         result = await self.db.execute(select(Rule).where(Rule.is_active == True))
@@ -92,4 +114,9 @@ class RuleEngine:
         }
 
     async def mock_llm_check(self, prompt_text: str):
+        """
+        Placeholder for an LLM-based safety check for the given prompt text.
+        
+        Reserved for integrating a language-model safety evaluation of prompt_text; currently a no-op with no observable effect.
+        """
         pass

@@ -42,10 +42,35 @@ RISK_MAPPING = {
 
 @app.get("/health")
 def health_check():
+    """
+    Report service health and whether the classification model is loaded.
+    
+    Returns:
+        dict: {
+            "status": "ok",           # str: indicates service is responsive
+            "model_loaded": bool      # True if the classifier is initialized, False otherwise
+        }
+    """
     return {"status": "ok", "model_loaded": classifier is not None}
 
 @app.post("/analyze_risk")
 def analyze_risk(request: AnalyzeRequest):
+    """
+    Analyze the input text and assign an EU AI Act risk level and category.
+    
+    Parameters:
+        request (AnalyzeRequest): Request object containing the `text` to classify.
+    
+    Returns:
+        dict: A mapping with keys:
+            - "risk_level": mapped risk level string (e.g., "UNACCEPTABLE", "HIGH", "MINIMAL", or "UNKNOWN"),
+            - "category": top predicted category or "uncertain (low confidence)" if confidence is low,
+            - "confidence": numeric confidence score for the top prediction.
+    
+    Raises:
+        HTTPException: with status 503 if the classification model is not loaded.
+        HTTPException: with status 500 if a prediction error occurs.
+    """
     if not classifier:
         raise HTTPException(status_code=503, detail="Model not ready")
         
