@@ -1,8 +1,11 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from detoxify import Detoxify
+import logging
 
 app = FastAPI(title="Toxicity Detection Service")
+
+logger = logging.getLogger(__name__)
 
 # Load model on startup (this might take a moment)
 # using 'original' model for balance of speed/accuracy
@@ -18,11 +21,11 @@ def load_model():
     global model
     try:
         model = Detoxify('original')
-    except Exception as e:
-        print(f"Error loading model: {e}")
+    except Exception:
+        logger.exception("Error loading model")
 
 class AnalyzeRequest(BaseModel):
-    text: str
+    text: str = Field(..., min_length=1, max_length=5000)
 
 @app.get("/health")
 def health_check():
@@ -59,13 +62,14 @@ def predict_toxicity(request: AnalyzeRequest):
         results = model.predict(request.text)
         # Convert numpy types to float for JSON serialization
         sanitized_results = {k: float(v) for k, v in results.items()}
-        
+
         # Simple heuristic: if toxicity > 0.7, flag it
         is_toxic = sanitized_results.get('toxicity', 0) > 0.7
-        
+
         return {
             "is_toxic": is_toxic,
             "scores": sanitized_results
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("Toxicity prediction failed")
+        raise HTTPException(status_code=500, detail="Internal server error")

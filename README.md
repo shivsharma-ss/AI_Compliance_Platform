@@ -9,3 +9,6 @@ The backend no longer mounts the host Docker socket directly. Instead it routes 
 - Consider moving container orchestration to a dedicated management service or remote Docker API with TLS and RBAC.
 
 If you do not need runtime container control, remove the proxy service and all Docker API usage entirely.
+
+## Dependency verification
+The backend pins `docker==7.1.0` after verifying the latest non-yanked PyPI release and reviewing the PyPI vulnerabilities listing for that release.

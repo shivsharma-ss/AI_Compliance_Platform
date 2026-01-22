@@ -50,8 +50,10 @@ services:
     cap_drop:
       - ALL
 
-  # Microservices (Stopped by default)
+  # Microservices (Enable with --profile microservices)
   presidio-service:
+    profiles:
+      - microservices
     build:
       context: ./modules/presidio_service
       dockerfile: Dockerfile

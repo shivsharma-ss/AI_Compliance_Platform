@@ -77,10 +77,14 @@ class RuleEngine:
             if rule.type == "REGEX":
                 payload = rule.payload_json
                 pattern = payload.get("pattern")
-                if pattern and re.search(pattern, request.prompt_text, re.IGNORECASE):
-                    triggered.append(f"Rule: {rule.name}")
-                    if rule.severity == "BLOCK":
-                        decision = "DECLINE"
+                if pattern:
+                    try:
+                        if re.search(pattern, request.prompt_text, re.IGNORECASE):
+                            triggered.append(f"Rule: {rule.name}")
+                            if rule.severity == "BLOCK":
+                                decision = "DECLINE"
+                    except re.error:
+                        logger.warning("Invalid regex pattern skipped", extra={"rule": rule.name, "rule_id": rule.id})
         
         # 2. Evaluate Microservices (if active)
         active_services = self.docker_manager.list_services()
@@ -98,8 +102,13 @@ class RuleEngine:
                             # Logic for Presidio
                             if config["type"] == "PII" and data.get("found_pii"):
                                 decision = "DECLINE"
-                                entities = [e["type"] for e in data.get("entities", [])]
-                                triggered.append(f"PII Detected: {', '.join(set(entities))}")
+                                entities = [
+                                    entity_type
+                                    for entity_type in (e.get("type") for e in data.get("entities", []))
+                                    if entity_type
+                                ]
+                                entity_summary = ", ".join(sorted(set(entities))) if entities else "unknown"
+                                triggered.append(f"PII Detected: {entity_summary}")
                                 
                             # Logic for Toxicity
                             if config["type"] == "TOXICITY" and data.get("is_toxic"):

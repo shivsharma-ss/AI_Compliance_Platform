@@ -6,7 +6,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-RUN pip install --no-cache-dir fastapi uvicorn presidio-analyzer presidio-anonymizer spacy
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Download Spacy model (Small)
 RUN python -m spacy download en_core_web_sm

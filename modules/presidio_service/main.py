@@ -1,10 +1,15 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from presidio_analyzer import AnalyzerEngine
 from presidio_anonymizer import AnonymizerEngine
 from presidio_analyzer.nlp_engine import NlpEngineProvider
+import logging
 
 app = FastAPI(title="Presidio PII Service")
+
+logger = logging.getLogger(__name__)
+
+SUPPORTED_LANGUAGES = {"en"}
 
 # Initialize engines
 # Load NlpEngine
@@ -17,7 +22,7 @@ analyzer = AnalyzerEngine(nlp_engine=nlp_engine)
 anonymizer = AnonymizerEngine()
 
 class AnalyzeRequest(BaseModel):
-    text: str
+    text: str = Field(..., min_length=1, max_length=5000)
     language: str = "en"
 
 @app.get("/health")
@@ -52,10 +57,13 @@ def analyze_text(request: AnalyzeRequest):
     Raises:
         HTTPException: If analysis fails, raises an HTTPException with status code 500 and the error detail.
     """
+    if request.language not in SUPPORTED_LANGUAGES:
+        raise HTTPException(status_code=400, detail="Unsupported language")
+
     try:
         # Analyze
         results = analyzer.analyze(text=request.text, language=request.language)
-        
+
         # Format results
         entities = []
         for res in results:
@@ -65,10 +73,11 @@ def analyze_text(request: AnalyzeRequest):
                 "end": res.end,
                 "score": res.score
             })
-            
+
         return {
             "found_pii": len(entities) > 0,
             "entities": entities
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("Presidio analysis failure")
+        raise HTTPException(status_code=500, detail="Internal server error")

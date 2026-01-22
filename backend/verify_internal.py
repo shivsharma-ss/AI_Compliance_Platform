@@ -20,8 +20,8 @@ async def check():
             r2 = await client.post('http://spotixx-presidio:8000/analyze', json={'text': 'My email is test@example.com'})
             print(f"Email Status: {r2.status_code}")
 
-            print("\nChecking Email (spotixx-presidio)...")
-            r3 = await client.post('http://spotixx-presidio:8000/analyze', json={'text': 'My email is test@example.com'})
+            print("\nChecking Service Name (spotixx-presidio)...")
+            r3 = await client.post('http://spotixx-presidio:8000/analyze', json={'text': 'Service name: spotixx-presidio'})
             print(f"Service Name Status: {r3.status_code}")
             print(f"Service Name Body: {r3.json()}")
 

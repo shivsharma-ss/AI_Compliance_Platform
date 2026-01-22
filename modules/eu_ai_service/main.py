@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from transformers import pipeline
 import logging
 
@@ -12,14 +12,21 @@ logger = logging.getLogger(__name__)
 # Initialize model
 # Zero-shot classification is powerful for this "open ended" categorization
 try:
-    classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+    classifier = pipeline("zero-shot-classification", model="valhalla/distilbart-mnli-12-1")
     logger.info("Model loaded successfully.")
 except Exception as e:
-    logger.error(f"Failed to load model: {e}")
+    logger.error("Failed to load model", exc_info=True)
     classifier = None
 
 class AnalyzeRequest(BaseModel):
-    text: str
+    text: str = Field(..., min_length=1, max_length=5000)
+
+    @field_validator("text")
+    def validate_text(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Text must not be empty")
+        return cleaned
 
 # Define Risk Categories based on EU AI Act
 CANDIDATE_LABELS = [
@@ -96,6 +103,6 @@ def analyze_risk(request: AnalyzeRequest):
             "confidence": score
         }
         
-    except Exception as e:
-        logger.error(f"Prediction error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("Prediction error")
+        raise HTTPException(status_code=500, detail="Internal server error")

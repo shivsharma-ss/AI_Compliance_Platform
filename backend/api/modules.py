@@ -49,9 +49,9 @@ def start_module(module_name: str, current_user: User = Depends(get_current_user
         
     success = docker_manager.start_service(normalized_name)
     if not success:
-        raise HTTPException(status_code=500, detail=f"Failed to start {module_name}")
+        raise HTTPException(status_code=500, detail=f"Failed to start {normalized_name}")
     
-    return {"status": "started", "module": module_name}
+    return {"status": "started", "module": normalized_name}
 
 @router.post("/{module_name}/stop")
 def stop_module(module_name: str, current_user: User = Depends(get_current_user)):
@@ -77,6 +77,6 @@ def stop_module(module_name: str, current_user: User = Depends(get_current_user)
         
     success = docker_manager.stop_service(normalized_name)
     if not success:
-        raise HTTPException(status_code=500, detail=f"Failed to stop {module_name}")
+        raise HTTPException(status_code=500, detail=f"Failed to stop {normalized_name}")
     
-    return {"status": "stopped", "module": module_name}
+    return {"status": "stopped", "module": normalized_name}
