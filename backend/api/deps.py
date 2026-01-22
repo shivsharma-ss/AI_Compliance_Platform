@@ -11,6 +11,21 @@ from core.config import settings
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
+    """
+    Authenticate a request using a bearer JWT and return the corresponding User.
+    
+    Validates the provided JWT, extracts the `sub` claim as the user id, and looks up that user in the database. Raises an HTTP 401 if the token is invalid, the `sub` claim is missing, or no matching user is found.
+    
+    Parameters:
+        token (str): Bearer token extracted from the Authorization header.
+        db (AsyncSession): Asynchronous database session.
+    
+    Returns:
+        User: The authenticated user instance.
+    
+    Raises:
+        HTTPException: 401 Unauthorized when credentials are missing, invalid, or no user matches the token.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

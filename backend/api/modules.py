@@ -10,6 +10,12 @@ docker_manager = DockerManager()
 def list_modules(current_user: User = Depends(get_current_user)):
     """
     List all available compliance modules and their current status.
+    
+    Returns:
+        A list of modules with their current status (e.g., running, stopped).
+    
+    Raises:
+        HTTPException: 403 if the current user is not an administrator.
     """
     # Authorization: Only Admins can see/manage modules
     if current_user.role != "admin":
@@ -20,7 +26,17 @@ def list_modules(current_user: User = Depends(get_current_user)):
 @router.post("/{module_name}/start")
 def start_module(module_name: str, current_user: User = Depends(get_current_user)):
     """
-    Start a compliance module (Docker container).
+    Start the specified compliance module (Docker container).
+    
+    Parameters:
+        module_name (str): Name of the module to start.
+    
+    Returns:
+        dict: A payload with keys `"status"` (value `"started"`) and `"module"` (the started module name).
+    
+    Raises:
+        HTTPException: 403 if the current user is not an admin.
+        HTTPException: 500 if the module could not be started.
     """
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -34,7 +50,17 @@ def start_module(module_name: str, current_user: User = Depends(get_current_user
 @router.post("/{module_name}/stop")
 def stop_module(module_name: str, current_user: User = Depends(get_current_user)):
     """
-    Stop a compliance module (Docker container).
+    Stop the specified compliance module container.
+    
+    Parameters:
+        module_name (str): Identifier or name of the module/container to stop.
+    
+    Returns:
+        dict: A payload with keys "status" (the string "stopped") and "module" (the module_name).
+    
+    Raises:
+        HTTPException: 403 if the current user is not authorized (not an admin).
+        HTTPException: 500 if the module could not be stopped.
     """
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")

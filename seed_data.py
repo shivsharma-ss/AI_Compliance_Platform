@@ -11,6 +11,11 @@ from core.security import get_password_hash
 from sqlalchemy import select
 
 async def seed():
+    """
+    Seed initial admin and test users into the database if they are not present.
+    
+    Creates an admin user (email "admin@spotixx.com") and a test user (email "user@test.com") with predefined passwords, roles, and active status when absent, commits the transaction, and prints status messages about creation or existence.
+    """
     async with AsyncSessionLocal() as db:
         # 1. Create Admin
         result = await db.execute(select(User).where(User.email == "admin@spotixx.com"))

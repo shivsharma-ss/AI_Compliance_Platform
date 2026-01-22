@@ -35,6 +35,12 @@ app.include_router(modules.router, prefix=f"{settings.API_V1_STR}/modules", tags
 
 @app.get("/")
 def read_root():
+    """
+    Provide the root API welcome message.
+    
+    Returns:
+        response (dict): Dictionary with a "message" key set to "Welcome to Spotixx AI Governance Gateway API".
+    """
     return {"message": "Welcome to Spotixx AI Governance Gateway API"}
 
 @app.get("/health")

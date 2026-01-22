@@ -20,6 +20,15 @@ async def evaluate_prompt(
     db: AsyncSession = Depends(get_db)
 ):
     # 1. Evaluate
+    """
+    Evaluate a prompt with the rule engine, persist the request and its evaluation, and return the saved record.
+    
+    Parameters:
+        request_in (PromptRequestCreate): Input payload containing the prompt_text, intended_use, and optional context.
+    
+    Returns:
+        PromptRequest: The persisted PromptRequest populated with evaluation results (`decision`, `reason_summary`) and database-managed fields (e.g., `id`, `created_at`).
+    """
     engine = RuleEngine(db)
     # Convert schema to temp object or just use fields
     # We need a PromptRequest object but don't save it yet until we get result? 
